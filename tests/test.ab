@@ -1,0 +1,7 @@
+pub fun test_amber(test, result) {
+	if test == result {
+	
+	} else {
+
+	}
+}
