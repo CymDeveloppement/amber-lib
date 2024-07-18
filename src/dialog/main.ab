@@ -1,0 +1,42 @@
+import { split, file_read, exit } from "std"
+
+
+
+pub fun dialog_config(backTitle: Text, clear: Bool) : [Text] {
+    #[depends:dialog]
+    return [backTitle, clear as Text]
+
+}
+
+pub fun dialog_yesno(title: Text, prompt: Text): Bool {
+    #[depends:dialog]
+    unsafe $dialog --title "{title}" --clear --yesno "{prompt}" 10 30$
+    if status == 0 {
+        return true
+    } else {
+        return false
+    }
+}
+
+#[allow_generic_return]
+pub fun dialog_fselect(title: Text) {
+    #[depends:dialog]
+    return unsafe $dialog --stdout --title "{title}" --fselect \$HOME/ 14 48$
+}
+
+#[allow_generic_return]
+pub fun dialog_calendar(title: Text, prompt: Text, iso_date: Text) {
+    #[depends:dialog]
+    let date = split(iso_date, "-")
+    
+    let date_result_splited =  split(unsafe $dialog --stdout --title "{title}" --calendar "{prompt}" 0 0 {date[2]} {date[1]} {date[0]}$, "/")
+
+    return date_result_splited[2]+"-"+date_result_splited[1]+"-"+date_result_splited[0]
+}
+
+#[allow_generic_return]
+pub fun dialog_inputbox(title: Text, prompt: Text, file: Text) {
+    #[depends:dialog]
+    unsafe $dialog --stdout --clear --title "{title}" --inputbox "{prompt}" 16 51 > {file}$
+    return unsafe $echo \$(<{file})$
+}

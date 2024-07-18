@@ -1,0 +1,76 @@
+import * from "std"
+import * from "../cymdev/main.ab"
+
+// basic test function
+pub fun test_amber_start(): Null {
+    let file = temp_file()
+    echo "start test with {file} temp file"
+    unsafe shell_constant_set("AMBER_TEST_OUTPUT_FILE", file)
+    unsafe stdout_log_start(file)
+}
+
+pub fun test_amber_get_output(): Text {
+    return stdout_log_flush()
+}
+
+pub fun test_amber(name: Text, result: Text, expected: Text = "Hello Amber!", index: Num = 0, total: Num = 0): Bool {
+    let test_index = ""
+    if (index > 0 and total > 0): test_index = "{index as Text}/{total} -- "
+    if expected == result {
+        unsafe $echo >&2 -e "{test_index}\e[32m valid : {name} \e[0m"$
+        return true
+    } else {
+        unsafe $echo >&2 -e "{test_index}\e[31m error : {name} \e[0m"$
+        unsafe $echo >&2 "\t expected : '{expected}'"$
+        unsafe $echo >&2 "\t result : '{result}'"$
+        return false
+    }
+
+}
+
+pub fun compile(code: Text, output: Text): Bool {
+
+}
+
+pub fun eval(code: Text): Num {
+    $amber -e "{code}"$
+}
+
+pub fun typeof(var): Text {
+    if {
+        var is Num:  return "Num"
+        var is Text: return "Text"
+        var is Bool: return "Bool"
+        var is Null: return "Null"
+        var is [Text]: return "[Text]"
+        var is [Text]: return "[Num]"
+    }
+}
+
+pub fun var_dump(ref var) {
+    let type = typeof(var)
+    if (type == "[Text]" or type == "[Num]") {
+        unsafe $echo -e "{nameof var} {type}: {join(var, "\n    ")}"$
+    } else {
+        unsafe $echo -e "{type}: {var as Text}"$   
+    }
+}
+
+
+pub fun parse_lib(name: Text): [Text] {
+    echo ""
+    let source = unsafe file_read("src/{name}/main.ab")
+    let all_functions = preg_match_all(source, "(?<=pub fun ).+(?= \{)")
+    var_dump(all_functions)
+    exit(0)
+    loop index, function in all_functions {
+        echo function
+        if not file_exist("tests/{name}/{function}.ab") {
+            unsafe $touch "tests/{name}/{function}.ab"$
+            echo "Make test file"
+        }
+        
+    }
+}
+
+//pub fun run()

@@ -121,6 +121,7 @@ pub fun array_index(array, value): Num {
             return index
         }
     }
+    return -1
 }
 
 pub fun array_search(array, value): [Num] {
@@ -131,6 +132,11 @@ pub fun array_search(array, value): [Num] {
         }
     }
     return result
+}
+
+pub fun in_array(array, value): Bool {
+    let result = array_index(array, value)
+    return result >= 0
 }
 
 pub fun has_failed(command: Text): Bool {

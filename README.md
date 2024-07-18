@@ -13,7 +13,8 @@ Src
 
 tests
 	libname
-		main.ab
+		function1.ab
+		function2.ab
 
 docs
 	libname

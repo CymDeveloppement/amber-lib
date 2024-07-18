@@ -1,2 +1,5 @@
 tests/bach.sh
 tests/std/stdlib.rs
+tests/node_modules
+*.json
+dev_*

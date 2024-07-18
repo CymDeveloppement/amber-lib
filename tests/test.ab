@@ -1,7 +1,45 @@
-pub fun test_amber(test, result) {
-	if test == result {
-	
-	} else {
+import * from "std"
+import * from "../src/cymdev/main.ab"
+import * from "../src/dev/main.ab"
 
-	}
+
+//echo temp_file(true)
+//error("test error", -1)
+
+test_amber_start()
+//exit(0)
+
+// text
+fun test_color_text_format(): Text {
+	return shell_text("Hello Amber!", 31, 1, 42)
 }
+let result = test_color_text_format()
+test_amber("text", "\e[1;31;42mHello Amber!\e[0m", result)
+
+
+//color_text
+fun test_print_color_text(): Text {
+	color_echo("Hello Amber!", 33)
+	return test_amber_get_output()
+}
+let result = test_print_color_text()
+test_amber("color_text", "[33mHello Amber![0m", result)
+
+
+//color_text
+fun test_print_color_text2(): Text {
+	color_echo("Hello Amber!", 33)
+	return test_amber_get_output()
+}
+let result = test_print_color_text2()
+test_amber("color_text2", "[33mHello Amber![0m", result)
+
+
+//depends
+fun test_depends(): Text {
+	depends("date/date")
+	depends("Amber/HelloAmberNotExist")
+	return test_amber_get_output()
+}
+let result = test_depends()
+test_amber("depends", "HelloAmberNotExist command could not be found, install package Amber", result)

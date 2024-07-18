@@ -1,8 +1,36 @@
 import * from "../test.ab"
 import * from "../../src/std/main.ab"
 
-fun replace_once_test() {
-    return replace_once(\"hello world!\", \"world\", \"Amber\")
+fun in_array_test() {
+    //echo in_array([3,5,7,8], 5) as Text + in_array([3,5,7,8], 4) as Text
+    echo in_array([3,5,7,8], 4) as Text
 }
 
-test_amber(replace_once_test(), "hello Amber!")
+in_array_test()
+
+exit(0)
+
+fun color_text(message: Text, color: Num) {
+    unsafe $echo -e "\e[{color as Text}m{message}\e[0m"$
+}
+
+// return formated bash text
+// message: Text Text variable
+// color1: Num foreground/background color
+// color2: Num foreground/background color
+// style: Num 
+// return text formated
+fun text(message: Text, color1: Num, color2: Num, style: Num) {
+    return "\e[{style as Text};{color1 as Text};{color2 as Text}m{message}\e[0m"
+}
+
+fun echo_e(message: Text) {
+    unsafe $echo -e "{message as Text}"$
+}
+
+//fun text_align()
+
+color_text("test", 31)
+let str = text("test", 32, 41, 3)
+str += "\r\ntest 2"
+echo_e(str)

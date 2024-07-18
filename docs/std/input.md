@@ -1,13 +1,11 @@
 # input(prompt: Text): Text
 
-retrieve input from standart input
+retrieve input from standard input
 
-### arguments
-	prompt: text
+### *arguments*
+	*prompt*: text
 		text prompt displayed in console
 
-### return value Text
+### *return value Text*
 	return text input
-
-### example
-	
+---

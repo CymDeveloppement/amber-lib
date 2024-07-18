@@ -1,0 +1,100 @@
+import { split } from "std"
+
+#[allow_generic_return]
+pub fun constant_set(name: Text, val: Text) {
+    unsafe $readonly \$name=\$val$
+}
+
+pub fun constant_get(name: Text): Text {
+    return unsafe $echo \$\{!name}$
+}
+
+pub fun shell_isset(name: Text): Bool {
+
+}
+
+#[allow_generic_return]
+pub fun debug_mode(set: Bool) {
+    if set == true {
+        unsafe $set -x$
+    } else {
+        unsafe $set +x$
+    }
+}
+
+pub fun temp_file(id: Num): Text {
+    let tmp_filename = "amber_tmp_file_" + id as Text
+    if constant_get(tmp_filename) == "" {
+        unsafe $readonly \$tmp_filename=/tmp/amber_\$\$$
+        unsafe $trap "rm -f \$\{!tmp_filename}" 0 1 2 5 15$
+    }
+    return constant_get(tmp_filename)
+}
+
+pub fun date(format: Text, date: Text): Text {
+    unsafe $if ! [ -x "\$(command -v date)" ];then echo \$"date command could not be found, install package date";exit 1; fi;$
+    if format == "" {
+        format = "%FT%T"
+    }
+    return unsafe $date -d "{date}" +"{format}"$
+}
+
+pub fun now(): Text {
+    unsafe $if ! [ -x "\$(command -v date)" ];then echo \$"date command could not be found, install package date";exit 1; fi;$
+    return unsafe $date +"%FT%T%Z"$
+}
+
+pub fun time(): Num {
+    unsafe $if ! [ -x "\$(command -v date)" ];then echo \$"date command could not be found, install package date";exit 1; fi;$
+    return unsafe $date +%s$ as Num
+}
+
+pub fun date_add(date:Text, add:Text): Text {
+    unsafe $if ! [ -x "\$(command -v date)" ];then echo \$"date command could not be found, install package date";exit 1; fi;$
+    let date_str = date("%F", date)
+    date_str += " "
+    date_str += add
+    date_str += " "
+    date_str += date("%T", date)
+    return date("", date_str)
+}
+
+pub fun dialog_config(backTitle: Text, clear: Bool) : [Text] {
+    unsafe $if ! [ -x "\$(command -v dialog)" ];then echo \$"dialog command could not be found, install package dialog";exit 1; fi;$
+    return [backTitle, clear as Text]
+
+}
+
+#[allow_generic_return]
+pub fun dialog_yesno(title: Text, prompt: Text) {
+    unsafe $if ! [ -x "\$(command -v dialog)" ];then echo \$"dialog command could not be found, install package dialog";exit 1; fi;$
+    unsafe $dialog --title "{title}" --clear --yesno "{prompt}" 10 30$
+    if status == 0 {
+        return true
+    } else {
+        return false
+    }
+}
+
+#[allow_generic_return]
+pub fun dialog_fselect(title: Text) {
+    unsafe $if ! [ -x "\$(command -v dialog)" ];then echo \$"dialog command could not be found, install package dialog";exit 1; fi;$
+    return unsafe $dialog --stdout --title "{title}" --fselect \$HOME/ 14 48$
+}
+
+#[allow_generic_return]
+pub fun dialog_calendar(title: Text, prompt: Text, iso_date: Text) {
+    unsafe $if ! [ -x "\$(command -v dialog)" ];then echo \$"dialog command could not be found, install package dialog";exit 1; fi;$
+    let date = split(iso_date, "-")
+    
+    let date_result_splited =  split(unsafe $dialog --stdout --title "{title}" --calendar "{prompt}" 0 0 {date[2]} {date[1]} {date[0]}$, "/")
+
+    return date_result_splited[2]+"-"+date_result_splited[1]+"-"+date_result_splited[0]
+}
+
+#[allow_generic_return]
+pub fun dialog_inputbox(title: Text, prompt: Text, file: Text) {
+    unsafe $if ! [ -x "\$(command -v dialog)" ];then echo \$"dialog command could not be found, install package dialog";exit 1; fi;$
+    unsafe $dialog --stdout --clear --title "{title}" --inputbox "{prompt}" 16 51 > {file}$
+    return unsafe $echo \$(<{file})$
+}

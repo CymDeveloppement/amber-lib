@@ -1,0 +1,231 @@
+import * from "std"
+
+
+pub fun temp_file(unique_in_process: Bool = false): Text {
+    let file = unique_in_process then unsafe $echo /tmp/\$(basename \$0)_tmp_file_\$\$$ else unsafe $echo /tmp/\$(basename \$0)_tmp_file_\$RANDOM$
+    unsafe {
+        $touch {file}$
+        $trap "rm -f {file}" 0 1 2 5 15$
+    }
+    return file
+}
+
+//create temp file
+pub fun temp_file_indexed(id: Num): Text {
+    let tmp_filename = "amber_tmp_file_" + id as Text
+    if unsafe shell_constant_get(tmp_filename) == "" {
+        unsafe $readonly \$tmp_filename=/tmp/amber_\$\$$
+        unsafe $trap "rm -f \$\{!tmp_filename}" 0 1 2 5 15$
+    }
+    return unsafe shell_constant_get(tmp_filename)
+}
+
+// redirect stdout to file start
+pub fun stdout_log_start(file: Text): Null {
+    if file == "": file = temp_file(false)
+    unsafe shell_constant_set("STDOUT_FILE", file)
+    $exec 3>{file}$?
+    $exec 1>&3$?
+}
+
+// redirect stdout to file end
+pub fun stdout_log_end(): Null {
+    unsafe $3>&-$
+}
+
+// redirect stdout clear file content
+pub fun stdout_log_clear(): Null {
+    stdout_log_end()
+    let file = unsafe shell_constant_get("STDOUT_FILE")
+    unsafe {
+        $exec 3>{file}$
+        $exec 1>&3$
+    }
+}
+
+pub fun stdout_log_flush(): Text {
+    let file = unsafe shell_constant_get("STDOUT_FILE")
+    let content = unsafe $< "{file}"$
+    unsafe {
+        $3>&-$
+        $rm -rf {file}$
+        $exec 3>{file}$
+        $exec 1>&3$
+    }
+    return content
+}
+
+pub fun table(header: [Text], data: [Text]): Null {
+    echo_e(bold_text(join(header, "\t")))
+
+}
+
+pub fun quote_text(text_to_quote, quote) {
+    if text_to_quote is Text: echo "Text"
+    if text_to_quote is [Text]: echo "[Text]"
+    
+    if text_to_quote is Text: let text_to_quote = "{quote}{text_to_quote}{quote}"
+
+    if text_to_quote is [Text] {
+        loop index, text in text_to_quote {
+            text_to_quote[index] = "{quote}{text_to_quote[index]}{quote}"
+        }
+    }
+    return text_to_quote
+}
+
+pub fun printf(format: Text, var_list: [Text]): Null {
+    let arg_list = join(quote_text(var_list, "\""), " ")
+    unsafe $printf "{format}" {arg_list}$
+}
+
+//COLOR TEXT
+pub fun confirm(prompt: Text, default_yes: Bool = true): Bool {
+    let choice_default = default_yes then " [\e[1mY/\e[0mn]" else " [y/\e[1mN\e[0m]"
+    unsafe {
+        $echo -n -e "\e[1m{prompt}\e[0m{choice_default}"$
+        $read -s -n 1$
+        $echo ""$
+    }
+    let result = lower(unsafe $echo \$REPLY$)
+    return result == "y" or (result == "" and default_yes)
+}
+
+// format string with shell style
+pub fun shell_text(message: Text, color1: Num, style: Num, color2: Num): Text {
+    return "\e[{style as Text};{color1 as Text};{color2 as Text}m{message}\e[0m"
+}
+
+// echo a colorized text in bash
+pub fun color_echo(message: Text, color: Num): Null {
+    unsafe $echo -e "\e[{color as Text}m{message}\e[0m"$
+}
+
+pub fun bold_text(message: Text): Text {
+    return "\e[1m{message}\e[0m"
+}
+
+pub fun italic_text(message: Text): Text {
+    return "\e[3m{message}\e[0m"
+}
+
+pub fun underlined_text(message: Text): Text {
+    return "\e[4m{message}\e[0m"
+}
+
+// echo and interpret escaped sequence
+pub fun echo_e(message: Text): Null {
+    unsafe $echo -e "{message as Text}\e[0m"$
+}
+
+pub fun info(message: Text): Null {
+    unsafe $echo -e "\e[1;3;97;44m {message} \e[0m"$
+}
+
+pub fun success(message: Text): Null {
+    unsafe $echo -e "\e[1;3;97;42m {message} \e[0m"$
+}
+
+pub fun warning(message: Text): Null {
+    unsafe $echo -e "\e[1;3;97;43m {message} \e[0m"$
+}
+
+pub fun error(message: Text, exit_code: Num = 1): Null {
+    unsafe $echo -e "\e[1;3;97;41m {message} \e[0m"$
+    if exit_code > 0 : exit(exit_code)
+}
+
+pub fun debug_mode(set: Bool = true): Null {
+    if set == true {
+        unsafe $set -x$
+    } else {
+        unsafe $set +x$
+    }
+}
+
+pub fun date(format: Text = "", date: Text = ""): Text {
+    if format == "": format = "%FT%T"
+    if date == "": date = now()
+    return $date -d "{date}" +"{format}"$?
+}
+
+pub fun now(): Text {
+    return unsafe $date +"%FT%T%Z"$
+}
+
+#[allow_absurd_cast]
+pub fun time(): Num {
+    return unsafe $date +%s$ as Num
+}
+
+pub fun date_add(date:Text, add:Text): Text {
+    return date("", "{date("%F", date)} {add} {date("%T", date)}")
+}
+
+pub fun depends(command: Text, exit_on_error : Bool = true): Bool {
+    let package_command = split(command, "/")
+    let command_exist = is_command(package_command[1])
+    let install_failed = false
+    if not command_exist {
+        unsafe $echo -e \$"{package_command[1]} command could not be found, install package {package_command[0]}"$
+        if shell_isset("DEPENDS_INSTALLER") {
+        	if confirm("Would you like to install it ?", true) {
+        		let cmd = "{unsafe shell_var_get("DEPENDS_INSTALLER")} {package_command[0]}"
+	            ${cmd}$ failed {
+	                if exit_on_error: exit(1)
+	                return false
+	            }	
+        	}
+        } else {
+            if exit_on_error: exit(1)
+            return false
+        }
+    }
+    return true
+}
+
+pub fun basename(file): Text {
+    return $basename {file}$?
+}
+
+pub fun dirname(file): Text {
+    return $dirname {file}$?
+}
+
+pub fun get_pwd(): Text {
+    return unsafe $pwd$
+}
+
+
+
+pub fun scale(start_a: Num, end_a: Num, value: Num, start_b: Num = 0, end_b: Num = 100): Num {
+    let range_a = (end_a-start_a)
+    value = value-(start_a)
+    echo value
+    
+    let range_b = (end_b-start_b)
+    echo range_b
+    let unit_a_in_b = (range_b/range_a)
+    echo unit_a_in_b
+    //if start_b<0: value = value + start_a
+    return (start_b+(value*unit_a_in_b))
+}
+
+pub fun scan_dir(path: Text = ""): [Text] {
+    if path == "": path = get_pwd()
+    let result = lines($ls -A1 {path}$?)
+    loop index, elem in result {
+        result[index] = "{unsafe dirname(elem)}/{unsafe basename(elem)}"
+    }
+    return result
+}
+
+pub fun preg_match_all_files(source: Text, pattern: Text): [Text] {
+    let result = unsafe $grep -o "{pattern}" {source}$
+    return lines(result)
+}
+
+pub fun preg_match_all(source: Text, pattern: Text): [Text] {
+    let result = unsafe $grep -o -P "{pattern}" <<< "{source}"$
+    return lines(result)
+}

@@ -1,0 +1,21 @@
+import * from "std"
+import * from "../test.ab"
+import * from "../../src/dialog/maincc.ab"
+
+echo date("", "@900000000")
+echo date_add(now(), "-1 day")
+exit(0)
+let date_1_month = now()+" -1 month"
+echo date_1_month
+echo date("%F", date_1_month)
+//echo date("%s")
+//echo dialog_calendar("date", "date de naissance", date("%F"))
+
+
+
+//echo dialog_inputbox("inputbox", temp_file(0))
+//echo dialog_inputbox("inputbox2", temp_file(1))
+
+//echo dialog_yesno("test", "oui ou non ??????")
+//echo dialog_fselect()
+//

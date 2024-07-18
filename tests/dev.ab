@@ -1,0 +1,70 @@
+import * from "std"
+import * from "../src/cymdev/main.ab"
+import * from "../src/dev/main.ab"
+
+
+unsafe shell_constant_set("DEPENDS_INSTALLER", "ame -S")
+//interpreter list
+//let interpreters = ["bash", "sh", "dash", "zsh", "ksh"]
+let interpreters = ["bash", "sh"]
+
+let time_start = time()
+
+//retrieve all files from subfolder
+let tests = unsafe scan_dir("./stdlib/*.ab")
+
+//test if interpreter is installed and display version
+loop i, interpreter in interpreters {
+    // test if interpreter is installed
+    depends("{interpreter}/{interpreter}")
+    //display version
+    unsafe ${interpreter} --version$
+}
+
+let passed = 0
+info("Start {len(tests) as Text} tests")
+
+//interate on tests array
+loop index, test in tests {
+    //"compile" code to /tmp/exec_amber_test.sh
+    $amber {test} /tmp/exec_amber_test.sh 2>&1$ failed {
+        error("test {test} compilation failed")
+    }
+
+    //read code from file
+    let compiled = unsafe file_read("/tmp/exec_amber_test.sh")
+
+    //realize test on each interpreter
+    loop i, interpreter in interpreters {
+        // test if interpreter is installed
+        depends("{interpreter}/{interpreter}")
+
+        //execute code exit and on fail if success store output
+        let result = ${interpreter} -c "{compiled}" 2>&1$ failed {
+          error("test {test} in {interpreter} failed", 0)
+
+          //display script output
+          echo unsafe ${interpreter} -c "{compiled}"$
+          exit(1)
+        }
+        
+        //set 
+        let expected = "Hello Amber!"
+        let expected_file = replace(test, ".ab", ".output.txt")
+        if file_exist(expected_file): expected = unsafe file_read(expected_file)
+        let test_name = "{interpreter} : {unsafe basename(test)}"
+        if test_amber(test_name, result, expected, (index+1), len(tests)): passed += 1
+    }
+
+
+}
+let time_total = (time()-time_start)
+let all_passed = (passed == len(tests))
+
+if all_passed {
+	success("{passed} tests passed in {time_total as Text} seconds")
+} else {
+	let failed_tests = (len(tests)-passed)
+	error("{passed} tests passed in {time_total as Text} seconds, {failed_tests} tests failed")
+}
+
